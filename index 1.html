@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6760076872606548"
+     crossorigin="anonymous"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PlayHub: Mega Brain Games</title>
+    
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #0f172a;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-press:active { transform: scale(0.95); }
+        .transition-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar { display: none; }
+
+        /* WordPeak Grid */
+        #word-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 40vh; /* Телефон баландлигига қараб мослашади */
+            margin: 0 auto;  /* Ўртага жойлайди */
+            aspect-ratio: 1 / 1;
+            position: relative;
+        }
+        .word-tile {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 900;
+            box-shadow: 0 6px 0 #1d4ed8;
+            cursor: pointer;
+            z-index: 2;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .word-tile.selected {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 2px 0 #b45309;
+            transform: translateY(4px) scale(0.95);
+            border: 2px solid #fde68a;
+        }
+        .word-tile.correct { animation: pop 0.4s; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 2px 0 #047857; }
+        .word-tile.incorrect { animation: shake 0.4s; background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 2px 0 #b91c1c; }
+
+        /* SVG Line */
+        #svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        polyline { fill: none; stroke: rgba(245, 158, 11, 0.7); stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Memory Grid */
+        #memory-board { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 10px; 
+            width: 100%; 
+            max-width: 40vh; /* Телефон баландлигига қараб мослашади */
+            margin: 0 auto;
+            aspect-ratio: 1 / 1; 
+        }
+        .mem-card { perspective: 1000px; cursor: pointer; aspect-ratio: 1; }
+        .mem-card-inner { width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; position: relative; }
+        .mem-card.flipped .mem-card-inner { transform: rotateY(180deg); }
+        .mem-card-front, .mem-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+        .mem-card-front { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 6px 0 #5b21b6; }
+        .mem-card-back { background: white; color: black; transform: rotateY(180deg); box-shadow: 0 4px 0 #cbd5e1; }
+        .mem-card.matched .mem-card-inner { transform: rotateY(180deg) scale(0.95); opacity: 0.8; }
+
+        /* Animations */
+        @keyframes pop { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(1);} }
+        @keyframes shake { 0%,100% {transform: translateX(0);} 20%,60% {transform: translateX(-5px);} 40%,80% {transform: translateX(5px);} }
+        @keyframes floatUp { 0% {opacity: 1; transform: translateY(0);} 100% {opacity: 0; transform: translateY(-50px);} }
+        .floater { position: absolute; font-weight: 900; color: #facc15; font-size: 2rem; animation: floatUp 1s ease-out forwards; pointer-events: none; z-index: 50; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body class="h-[100dvh] w-full flex items-center justify-center bg-slate-900">
+
+<div class="w-full h-full sm:h-[95dvh] sm:max-h-[850px] max-w-md bg-[#0f172a] flex flex-col relative overflow-hidden shadow-2xl sm:rounded-[2.5rem] sm:border-[10px] sm:border-black">
+    
+    <!-- GLOBAL HEADER -->
+    <header class="p-4 flex justify-between items-center z-20 glass rounded-b-2xl shadow-lg">
+        <button onclick="goHome()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center btn-press hover:bg-white/20 transition-all">
+            <i class="fas fa-home text-white"></i>
+        </button>
+        <div class="flex gap-2 items-center">
+            <div class="bg-black/40 px-4 py-1.5 rounded-full flex items-center gap-2 border border-yellow-500/30 btn-press cursor-pointer" onclick="showModal('shop-modal')">
+                <i class="fas fa-coins text-yellow-400"></i>
+                <span id="global-coins" class="font-black text-white">0</span>
+                <i class="fas fa-plus-circle text-green-400 text-xs ml-1"></i>
+            </div>
+            <button onclick="showModal('lang-modal')" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold text-xs uppercase btn-press" id="lang-btn">EN</button>
+        </div>
+    </header>
+
+    <!-- SCREEN 1: GAME HUB (MAIN MENU) -->
+    <div id="screen-hub" class="flex-1 min-h-0 flex flex-col p-6 overflow-y-auto w-full transition-all">
+        <div class="text-center mb-8 mt-4">
+            <h1 class="text-4xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 drop-shadow-lg">PlayHub</h1>
+            <p class="text-slate-400 font-bold tracking-widest text-xs mt-2" data-i18n="hub_subtitle">MEGA BRAIN GAMES</p>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Game 1: WordPeak -->
+            <div onclick="openLevelSelect()" class="glass p-5 rounded-3xl flex items-center gap-4 btn-press cursor-pointer border-l-4 border-blue-500 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 text-blue-500/10 text-8xl group-hover:scale-110 transition-all"><i class="fas fa-font"></i></div>
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl shadow-lg"><i class="fas fa-mountain text-white"></i></div>
+                <div class="z-10">
+                    <h2 class="text-xl font-black">WordPeak</h2>
+                    <p class="text-xs text-blue-300 font-bold" data-i18n="word_desc">Levels & Missions</p>
+                    <div class="mt-1 text-[10px] bg-blue-900/50 px-2 py-0.5 rounded text-blue-200 inline-block"><span data-i18n="lvl">LVL</span> <span id="hub-word-lvl">1</span></div>
+                </div>
+            </div>
+
+            <!-- Game 2: MathGenius -->
+            <div onclick="startMathGame()" class="glass p-5 rounded-3xl flex items-center gap-4 btn-press cursor-pointer border-l-4 border-emerald-500 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 text-emerald-500/10 text-8xl group-hover:scale-110 transition-all"><i class="fas fa-calculator"></i></div>
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-3xl shadow-lg"><i class="fas fa-infinity text-white"></i></div>
+                <div class="z-10">
+                    <h2 class="text-xl font-black">MathGenius</h2>
+                    <p class="text-xs text-emerald-300 font-bold" data-i18n="math_desc">Speed Equations</p>
+                    <div class="mt-1 text-[10px] bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-200 inline-block" data-i18n="arcade">Arcade Mode</div>
+                </div>
+            </div>
+
+            <!-- Game 3: MemoryMaster -->
+            <div onclick="startMemoryGame()" class="glass p-5 rounded-3xl flex items-center gap-4 btn-press cursor-pointer border-l-4 border-purple-500 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 text-purple-500/10 text-8xl group-hover:scale-110 transition-all"><i class="fas fa-brain"></i></div>
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-3xl shadow-lg"><i class="fas fa-clone text-white"></i></div>
+                <div class="z-10">
+                    <h2 class="text-xl font-black">MemoryMaster</h2>
+                    <p class="text-xs text-purple-300 font-bold" data-i18n="mem_desc">Card Matching</p>
+                    <div class="mt-1 text-[10px] bg-purple-900/50 px-2 py-0.5 rounded text-purple-200 inline-block" data-i18n="arcade">Arcade Mode</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-auto pt-6 pb-2">
+            <!-- Simulated Ad Banner -->
+            <div class="w-full h-14 bg-slate-800 rounded-xl flex items-center justify-between px-4 border border-slate-700 btn-press cursor-pointer" onclick="showAdModal()">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-blue-500 rounded flex items-center justify-center animate-pulse"><i class="fas fa-play text-white text-xs"></i></div>
+                    <div>
+                        <div class="text-xs font-black text-white">Sponsor Ad</div>
+                        <div class="text-[9px] text-slate-400">Click to support</div>
+                    </div>
+                </div>
+                <div class="text-[10px] bg-slate-700 px-2 py-1 rounded text-white font-bold">AD</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: WORDPEAK LEVEL SELECTOR -->
+    <div id="screen-levels" class="flex-1 min-h-0 flex flex-col p-6 hidden transition-all">
+        <h2 class="text-3xl font-black text-center mb-6 text-blue-400">WordPeak</h2>
+        <div class="flex-1 overflow-y-auto pb-10 pr-2 space-y-4" id="levels-container">
+            <!-- Levels injected here via JS -->
+        </div>
+    </div>
+
+    <!-- SCREEN 3: WORDPEAK ACTIVE GAME -->
+    <div id="screen-word" class="flex-1 min-h-0 flex flex-col p-4 hidden transition-all relative overflow-y-auto">
+        <div class="glass p-4 rounded-2xl mb-4 text-center border-t-4 border-yellow-400">
+            <h3 class="text-xs text-slate-400 font-bold uppercase tracking-widest"><span data-i18n="lvl">Level</span> <span id="active-lvl-display">1</span> Mission</h3>
+            <p class="text-lg font-black text-white mt-1"><span data-i18n="score_goal">Score</span> <span id="word-target-score" class="text-yellow-400">500</span> <span data-i18n="pts">pts</span></p>
+            <!-- Progress Bar -->
+            <div class="w-full h-2 bg-slate-800 rounded-full mt-3 overflow-hidden">
+                <div id="word-progress" class="h-full bg-yellow-400 w-0 transition-all duration-300"></div>
+            </div>
+            <!-- Timer & Current Score -->
+            <div class="flex justify-between items-center mt-3 font-black">
+                <div class="text-blue-400"><i class="fas fa-stopwatch"></i> <span id="word-timer">60</span>s</div>
+                <div class="text-green-400"><span id="word-score">0</span> pts</div>
+            </div>
+        </div>
+
+        <div class="h-14 glass rounded-xl flex items-center justify-center mb-4 relative">
+            <span id="current-word" class="text-2xl font-black tracking-widest drop-shadow-md"></span>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center">
+            <div id="word-board" class="glass p-3 rounded-2xl">
+                <svg id="svg-layer"><polyline id="swipe-line" points=""></polyline></svg>
+                <!-- Tiles injected via JS -->
+            </div>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+            <button onclick="shuffleWordGrid()" class="glass flex-1 py-3 rounded-xl font-bold btn-press"><i class="fas fa-random text-blue-400"></i></button>
+            <button onclick="useWordHint()" class="glass flex-1 py-3 rounded-xl font-bold btn-press flex justify-center items-center gap-1">
+                <i class="fas fa-lightbulb text-yellow-400"></i> -20 <i class="fas fa-coins text-[10px] text-yellow-400"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: MATH GENIUS -->
+    <div id="screen-math" class="flex-1 min-h-0 flex flex-col p-6 hidden transition-all overflow-y-auto">
+        <div class="flex justify-between items-center mb-8">
+            <div class="glass px-4 py-2 rounded-xl font-black text-emerald-400"><span id="math-score">0</span> pts</div>
+            <div class="glass px-4 py-2 rounded-xl font-black text-red-400"><i class="fas fa-heart"></i> <span id="math-lives">3</span></div>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center justify-center w-full">
+            <div class="w-full bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
+                <div id="math-timer-bar" class="h-full bg-emerald-500 w-full"></div>
+            </div>
+            
+            <div class="text-6xl font-black mb-12 drop-shadow-lg tracking-widest text-center" id="math-equation">
+                2 + 2
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 w-full" id="math-options">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 5: MEMORY MASTER -->
+    <div id="screen-memory" class="flex-1 min-h-0 flex flex-col p-4 hidden transition-all overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <div class="glass px-4 py-2 rounded-xl font-black text-purple-400"><span id="mem-score">0</span> pts</div>
+            <div class="glass px-4 py-2 rounded-xl font-black text-blue-400"><i class="fas fa-stopwatch"></i> <span id="mem-timer">60</span>s</div>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center">
+            <div id="memory-board" class="glass p-3 rounded-2xl">
+                <!-- Cards injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- Game Over / Level Complete Modal -->
+    <div id="result-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6 hidden">
+        <div class="glass p-8 rounded-3xl w-full max-w-sm text-center transform transition-all scale-100 border-t-8 border-yellow-400">
+            <h2 id="result-title" class="text-3xl font-black mb-2 text-white">LEVEL CLEARED!</h2>
+            <p id="result-msg" class="text-slate-300 font-bold text-sm mb-6">Awesome job!</p>
+            
+            <div class="bg-black/50 p-4 rounded-2xl mb-6">
+                <p class="text-xs text-slate-400 font-bold uppercase mb-1" data-i18n="reward">Reward</p>
+                <div class="text-4xl font-black text-yellow-400 drop-shadow-md">+<span id="result-reward">50</span> <i class="fas fa-coins text-2xl"></i></div>
+            </div>
+
+            <button onclick="showAdForBonus()" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 py-3.5 rounded-xl font-black mb-3 btn-press flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20">
+                <i class="fas fa-video"></i> Claim 2X Reward
+            </button>
+            <button onclick="closeResultAndHome()" class="w-full bg-slate-700 py-3.5 rounded-xl font-black btn-press shadow-lg">
+                <span data-i18n="cont">CONTINUE</span> <i class="fas fa-arrow-right ml-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Shop Modal -->
+    <div id="shop-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-6 hidden">
+        <div class="glass p-6 rounded-3xl w-full max-w-sm text-center relative border border-yellow-500/30">
+            <button onclick="hideModal('shop-modal')" class="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full btn-press"><i class="fas fa-times"></i></button>
+            <h2 class="text-3xl font-black text-yellow-400 mb-6"><i class="fas fa-store"></i> <span data-i18n="shop">STORE</span></h2>
+            
+            <div class="space-y-3">
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center btn-press cursor-pointer" onclick="buyItem('small')">
+                    <div class="flex items-center gap-3"><i class="fas fa-coins text-2xl text-yellow-400"></i><div class="text-left font-black text-lg">+1000</div></div>
+                    <div class="bg-green-600 px-3 py-1 rounded font-black">$0.99</div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-yellow-500/50 flex justify-between items-center btn-press cursor-pointer relative" onclick="buyItem('large')">
+                    <div class="absolute -top-2 -left-2 bg-red-500 text-[10px] px-2 rounded-full font-black rotate-[-10deg]">POPULAR</div>
+                    <div class="flex items-center gap-3"><i class="fas fa-sack-dollar text-2xl text-yellow-400"></i><div class="text-left font-black text-lg text-yellow-400">+5000</div></div>
+                    <div class="bg-green-600 px-3 py-1 rounded font-black">$2.99</div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-purple-500/50 flex justify-between items-center btn-press cursor-pointer" onclick="buyItem('ads')">
+                    <div class="flex items-center gap-3"><i class="fas fa-ban text-2xl text-purple-400"></i><div class="text-left font-black text-md">Remove Ads</div></div>
+                    <div class="bg-green-600 px-3 py-1 rounded font-black">$1.99</div>
+                </div>
+            </div>
+            <p class="text-[9px] text-slate-500 mt-4 uppercase">Simulated Google Play Billing API</p>
+        </div>
+    </div>
+
+    <!-- Language Modal -->
+    <div id="lang-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6 hidden">
+        <div class="glass p-6 rounded-3xl w-full max-w-sm text-center relative">
+            <button onclick="hideModal('lang-modal')" class="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full btn-press"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-black mb-4" data-i18n="select_lang">Select Language</h2>
+            <div class="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto pr-1" id="lang-grid">
+                <!-- Injected -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Ad Simulation Modal -->
+    <div id="ad-modal" class="fixed inset-0 bg-black z-[100] flex flex-col hidden">
+        <div class="p-4 flex justify-between items-center bg-slate-900">
+            <span class="text-xs font-bold text-slate-400">Google AdMob Simulation</span>
+            <div id="ad-timer" class="font-black text-white bg-slate-800 px-3 py-1 rounded-full">5s</div>
+            <button id="ad-close" class="hidden w-8 h-8 bg-white/20 rounded-full btn-press" onclick="closeAd()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex-1 flex flex-col items-center justify-center text-center p-6 bg-gradient-to-b from-slate-800 to-black">
+            <i class="fas fa-gem text-7xl text-blue-500 mb-6 animate-pulse"></i>
+            <h1 class="text-4xl font-black mb-2">Epic Quest RPG</h1>
+            <p class="text-slate-400 mb-8">Download the best game of 2026!</p>
+            <button class="bg-green-500 px-8 py-3 rounded-full font-black text-xl w-full max-w-xs shadow-[0_0_15px_rgba(34,197,94,0.5)]">INSTALL NOW</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* ================= TRANSLATIONS & CONFIG ================= */
+    const LANGUAGES = {
+        en: { code: 'en', name: "English", flag: "🇬🇧", letters: "EEEEEEEAAAARRRRIIIIOOOOTTTTNNNNSSSSLLLLCCCCUUUUDDDDPPPPMMMHHHGBBFFYYWKVXZJQ".split('') },
+        uz: { code: 'uz', name: "O'zbek", flag: "🇺🇿", letters: "AAAAAAAIIIIIIIOOOOOOONNNNNNNRRRRRRTTTTTTLLLLLSSSSSMMMMBBBBKKKKDDDDYYYYGGGGVVVVPPPPCHHJQZFX".split('').concat(["O'","O'","O'","G'","G'","SH","SH","CH"]) },
+        ru: { code: 'ru', name: "Русский", flag: "🇷🇺", letters: "ОООООЕЕЕЕЕАААААИИИИИННННТТТСССЛЛЛВВВРРРКККМММДДПУЯЫЬГЗБЧЙХЖШЮЦЩЭФ".split('') },
+        es: { code: 'es', name: "Español", flag: "🇪🇸", letters: "EEEEEEAAAAAAOOOOOSSSSRNNNDDLCTUMPBGVIQYHFZJXKW".split('').concat(["Ñ","Ñ"]) },
+        fr: { code: 'fr', name: "Français", flag: "🇫🇷", letters: "EEEEEEEAAAAAASSSSIINNNRRRTTTOOLLUUDDCMPVGBFHYZJQKWX".split('') },
+        de: { code: 'de', name: "Deutsch", flag: "🇩🇪", letters: "EEEEEEENNNNNSSSSIIRRRRTTTDDDHUUUCGLLMMBBOOWZFKVJP".split('').concat(["Ä","Ö","Ü","ß"]) },
+        it: { code: 'it', name: "Italiano", flag: "🇮🇹", letters: "EEEEEIIIIAAAAOOOONNNLLLRRRSSSCTDMGPBVZFHQW".split('') },
+        tr: { code: 'tr', name: "Türkçe", flag: "🇹🇷", letters: "AAAAAAEEEEEIIIIINNNNNRRRRRLLLLTTTTKKKKIIIMMMSSSDDDYYOOOUUBBCCC".split('').concat(["Ğ","Ğ","Ş","Ş","Ç","Ç","Ö","Ö","Ü","Ü"]) },
+        pt: { code: 'pt', name: "Português", flag: "🇵🇹", letters: "AAAAAAEEEEEEOOOOSSSSRNNNDDIITUMPCGVLQFHBZJXKW".split('').concat(["Ç","Ç","Ã","Õ"]) },
+        nl: { code: 'nl', name: "Nederlands", flag: "🇳🇱", letters: "EEEEEENNNNNAAAATTTIIIOOORDDSSLGGHVLKCMBPUWJZXYFQ".split('') }
+    };
+
+    const I18N = {
+        en: { hub_subtitle: "MEGA BRAIN GAMES", word_desc: "Levels & Missions", math_desc: "Speed Equations", mem_desc: "Card Matching", arcade: "Arcade Mode", lvl: "LVL", score_goal: "Goal:", pts: "pts", reward: "Reward", cont: "CONTINUE", shop: "STORE", select_lang: "Language", level_cleared: "LEVEL CLEARED!", game_over: "GAME OVER", out_of_time: "Time's up!" },
+        uz: { hub_subtitle: "MEGA MIYA O'YINLARI", word_desc: "Bosqichlar va Missiyalar", math_desc: "Tezkor Misollar", mem_desc: "Kartalarni Topish", arcade: "Arkada Rejimi", lvl: "BOSQICH", score_goal: "Maqsad:", pts: "ball", reward: "Yutuq", cont: "DAVOM ETISH", shop: "DO'KON", select_lang: "Tilni tanlash", level_cleared: "G'ALABA!", game_over: "O'YIN TUGADI", out_of_time: "Vaqt tugadi!" },
+        ru: { hub_subtitle: "МЕГА ИГРЫ ДЛЯ МОЗГА", word_desc: "Уровни и Миссии", math_desc: "Скоростные Уравнения", mem_desc: "Поиск Карт", arcade: "Аркадный Режим", lvl: "УР", score_goal: "Цель:", pts: "очк", reward: "Награда", cont: "ПРОДОЛЖИТЬ", shop: "МАГАЗИН", select_lang: "Язык", level_cleared: "УРОВЕНЬ ПРОЙДЕН!", game_over: "ИГРА ОКОНЧЕНА", out_of_time: "Время вышло!" }
+        // Fallback to EN for others to save space in prompt, but fully scalable.
+    };
+
+    /* ================= GLOBAL STATE ================= */
+    let g_coins = parseInt(localStorage.getItem('ph_coins')) || 250;
+    let g_wordLevel = parseInt(localStorage.getItem('ph_wordLvl')) || 1;
+    let g_lang = localStorage.getItem('ph_lang') || 'en';
+    
+    let activeInterval = null;
+    let currentReward = 0;
+    let pendingRewardCallback = null;
+
+    function saveState() {
+        localStorage.setItem('ph_coins', g_coins);
+        localStorage.setItem('ph_wordLvl', g_wordLevel);
+        localStorage.setItem('ph_lang', g_lang);
+        document.getElementById('global-coins').textContent = g_coins;
+        document.getElementById('hub-word-lvl').textContent = g_wordLevel;
+    }
+
+    function addCoins(amount) { g_coins += amount; saveState(); }
+    function spendCoins(amount) { if(g_coins >= amount) { g_coins -= amount; saveState(); return true; } return false; }
+
+    /* ================= CORE UI & NAVIGATION ================= */
+    function init() {
+        saveState();
+        buildLangGrid();
+        applyLang();
+        goHome();
+    }
+
+    function switchScreen(id) {
+        clearInterval(activeInterval); // Stop any running game timers
+        ['screen-hub', 'screen-levels', 'screen-word', 'screen-math', 'screen-memory'].forEach(s => {
+            document.getElementById(s).classList.add('hidden');
+        });
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function goHome() { switchScreen('screen-hub'); }
+    function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    /* ================= LANGUAGE SYSTEM ================= */
+    function buildLangGrid() {
+        const grid = document.getElementById('lang-grid');
+        grid.innerHTML = '';
+        for(let k in LANGUAGES) {
+            const btn = document.createElement('div');
+            btn.className = `p-3 rounded-xl border-2 font-bold flex items-center gap-3 cursor-pointer btn-press ${g_lang === k ? 'bg-blue-600 border-yellow-400' : 'bg-white/10 border-transparent'}`;
+            btn.innerHTML = `<span class="text-2xl">${LANGUAGES[k].flag}</span> ${LANGUAGES[k].name}`;
+            btn.onclick = () => { g_lang = k; saveState(); buildLangGrid(); applyLang(); hideModal('lang-modal'); };
+            grid.appendChild(btn);
+        }
+    }
+
+    function applyLang() {
+        document.getElementById('lang-btn').textContent = LANGUAGES[g_lang].code;
+        const dict = I18N[g_lang] || I18N['en'];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if(dict[key]) el.textContent = dict[key];
+        });
+    }
+
+    /* ================= MODULE 1: WORDPEAK (LEVELS) ================= */
+    let w_grid = [], w_selected = [], w_isDragging = false;
+    let w_score = 0, w_target = 0, w_time = 0;
+    const w_board = document.getElementById('word-board');
+    const w_svg = document.getElementById('swipe-line');
+
+    function openLevelSelect() {
+        switchScreen('screen-levels');
+        const cont = document.getElementById('levels-container');
+        cont.innerHTML = '';
+        for(let i=1; i<=Math.max(g_wordLevel + 2, 10); i++) {
+            const isUnlocked = i <= g_wordLevel;
+            const btn = document.createElement('div');
+            btn.className = `p-4 rounded-2xl border-2 flex justify-between items-center btn-press ${isUnlocked ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-400 cursor-pointer' : 'bg-slate-800 border-slate-700 opacity-50 cursor-not-allowed'}`;
+            btn.innerHTML = `<div class="font-black text-xl">Level ${i}</div> <div class="text-sm font-bold">${isUnlocked ? '<i class="fas fa-play text-yellow-400"></i>' : '<i class="fas fa-lock"></i>'}</div>`;
+            if(isUnlocked) btn.onclick = () => startWordLevel(i);
+            cont.appendChild(btn);
+        }
+    }
+
+    function startWordLevel(lvl) {
+        switchScreen('screen-word');
+        document.getElementById('active-lvl-display').textContent = lvl;
+        
+        w_score = 0;
+        w_target = lvl * 250 + 250; // L1: 500, L2: 750...
+        w_time = Math.max(30, 90 - (lvl * 5)); // L1: 85s, decreases to 30s max
+        
+        document.getElementById('word-target-score').textContent = w_target;
+        updateWordUI();
+        generateWordGrid();
+        
+        activeInterval = setInterval(() => {
+            w_time--;
+            updateWordUI();
+            if(w_time <= 0) handleWordGameOver();
+        }, 1000);
+    }
+
+    function updateWordUI() {
+        document.getElementById('word-score').textContent = w_score;
+        document.getElementById('word-timer').textContent = w_time;
+        const pct = Math.min(100, (w_score / w_target) * 100);
+        document.getElementById('word-progress').style.width = pct + '%';
+        if(w_score >= w_target) handleWordVictory();
+    }
+
+    function generateWordGrid() {
+        w_board.innerHTML = '<svg id="svg-layer"><polyline id="swipe-line" points=""></polyline></svg>';
+        w_grid = [];
+        const chars = LANGUAGES[g_lang].letters;
+        for(let i=0; i<16; i++) {
+            // Энди charAt эмас, массив ичидан [ ] орқали чақирамиз
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            w_grid.push({ letter: char, index: i });
+            const tile = document.createElement('div');
+            tile.className = 'word-tile';
+            tile.textContent = char;
+            tile.dataset.i = i;
+            w_board.appendChild(tile);
+        }
+        setupWordTouch();
+    }
+
+    function setupWordTouch() {
+        w_board.addEventListener('pointerdown', e => { w_isDragging = true; handleWordMove(e); });
+        document.addEventListener('pointermove', e => { if(w_isDragging) handleWordMove(e); });
+        document.addEventListener('pointerup', () => { if(w_isDragging) finishWord(); });
+        w_board.addEventListener('touchstart', e => e.preventDefault(), {passive:false});
+    }
+
+    function handleWordMove(e) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        if(!el || !el.classList.contains('word-tile')) return;
+        const idx = parseInt(el.dataset.i);
+        
+        if(w_selected.length === 0) {
+            w_selected.push(idx);
+            renderWordSelection();
+            navigator.vibrate?.(10);
+            return;
+        }
+        
+        const lastIdx = w_selected[w_selected.length - 1];
+        if(idx !== lastIdx) {
+            // Undo
+            if(w_selected.length > 1 && idx === w_selected[w_selected.length - 2]) {
+                w_selected.pop();
+                renderWordSelection();
+                navigator.vibrate?.(5);
+                return;
+            }
+            // Check Adjacency
+            const r1 = Math.floor(lastIdx/4), c1 = lastIdx%4;
+            const r2 = Math.floor(idx/4), c2 = idx%4;
+            if(!w_selected.includes(idx) && Math.abs(r1-r2)<=1 && Math.abs(c1-c2)<=1) {
+                w_selected.push(idx);
+                renderWordSelection();
+                navigator.vibrate?.(10);
+            }
+        }
+    }
+
+    function renderWordSelection() {
+        const tiles = w_board.querySelectorAll('.word-tile');
+        tiles.forEach(t => t.classList.remove('selected'));
+        let word = "", pts = "";
+        const rect = w_board.getBoundingClientRect();
+        
+        w_selected.forEach(idx => {
+            const t = tiles[idx];
+            t.classList.add('selected');
+            word += w_grid[idx].letter;
+            const r = t.getBoundingClientRect();
+            pts += `${r.left+r.width/2 - rect.left},${r.top+r.height/2 - rect.top} `;
+        });
+        
+        document.getElementById('current-word').textContent = word;
+        document.getElementById('swipe-line').setAttribute('points', pts.trim());
+    }
+
+    function finishWord() {
+        w_isDragging = false;
+        if(w_selected.length >= 3) {
+            // Simulated Dictionary Accept (Length based for offline mega-app demo)
+            const wordStr = document.getElementById('current-word').textContent;
+            let pts = wordStr.length * 15;
+            if(wordStr.length >= 5) pts += 50; // Bonus
+            
+            w_score += pts;
+            showFloater(pts, w_selected[w_selected.length-1]);
+            
+            const tiles = w_board.querySelectorAll('.word-tile');
+            w_selected.forEach(idx => {
+                tiles[idx].classList.add('correct');
+                setTimeout(() => {
+                    tiles[idx].classList.remove('correct', 'selected');
+                    const chars = LANGUAGES[g_lang].letters;
+                    // Янги харфларни хам массивдан оламиз
+                    w_grid[idx].letter = chars[Math.floor(Math.random() * chars.length)];
+                    tiles[idx].textContent = w_grid[idx].letter;
+                }, 300);
+            });
+            navigator.vibrate?.([30,50,30]);
+        } else {
+            const tiles = w_board.querySelectorAll('.word-tile');
+            w_selected.forEach(idx => {
+                tiles[idx].classList.add('incorrect');
+                setTimeout(() => tiles[idx].classList.remove('incorrect', 'selected'), 400);
+            });
+            navigator.vibrate?.(50);
+        }
+        w_selected = [];
+        document.getElementById('current-word').textContent = "";
+        document.getElementById('swipe-line').setAttribute('points', "");
+        updateWordUI();
+    }
+
+    function showFloater(amt, idx) {
+        const t = w_board.querySelectorAll('.word-tile')[idx].getBoundingClientRect();
+        const f = document.createElement('div');
+        f.className = 'floater';
+        f.textContent = '+'+amt;
+        f.style.left = t.left + 'px';
+        f.style.top = t.top + 'px';
+        document.body.appendChild(f);
+        setTimeout(()=>f.remove(), 1000);
+    }
+
+    function shuffleWordGrid() { if(spendCoins(10)) { w_score = Math.max(0, w_score-20); generateWordGrid(); updateWordUI(); } else showModal('shop-modal'); }
+    function useWordHint() { if(spendCoins(20)) { /* highlight random 3 adjacent */ navigator.vibrate?.(20); } else showModal('shop-modal'); }
+
+    function handleWordVictory() {
+        clearInterval(activeInterval);
+        currentReward = g_wordLevel * 10;
+        const currentLvlDisplay = parseInt(document.getElementById('active-lvl-display').textContent);
+        if(currentLvlDisplay === g_wordLevel) g_wordLevel++; // Unlock next
+        saveState();
+        showResultModal("LEVEL CLEARED!", currentReward);
+    }
+    function handleWordGameOver() {
+        clearInterval(activeInterval);
+        currentReward = 5; // pity coins
+        showResultModal("OUT OF TIME", currentReward);
+    }
+
+    /* ================= MODULE 2: MATH GENIUS ================= */
+    let m_score = 0, m_lives = 3, m_time = 0;
+    
+    function startMathGame() {
+        switchScreen('screen-math');
+        m_score = 0; m_lives = 3; m_time = 100; // Represents percentage of bar
+        updateMathUI();
+        nextMathQ();
+        
+        activeInterval = setInterval(() => {
+            m_time -= 2; // Speed of timer
+            document.getElementById('math-timer-bar').style.width = m_time + '%';
+            if(m_time <= 0) { loseMathLife(); }
+        }, 100);
+    }
+
+    function nextMathQ() {
+        m_time = 100;
+        const ops = ['+', '-', '*'];
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        let a, b, ans;
+        if(op === '+') { a=rand(1,50); b=rand(1,50); ans = a+b; }
+        if(op === '-') { a=rand(20,99); b=rand(1,a); ans = a-b; }
+        if(op === '*') { a=rand(2,12); b=rand(2,12); ans = a*b; }
+        
+        document.getElementById('math-equation').textContent = `${a} ${op} ${b}`;
+        
+        let opts = [ans, ans+rand(1,10), ans-rand(1,5), ans+rand(11,20)].sort(()=>Math.random()-0.5);
+        const cont = document.getElementById('math-options');
+        cont.innerHTML = '';
+        opts.forEach(o => {
+            const btn = document.createElement('button');
+            btn.className = 'glass py-6 rounded-2xl text-3xl font-black btn-press active:bg-white/20 transition-colors';
+            btn.textContent = o;
+            btn.onclick = () => {
+                if(o === ans) { m_score += 10; navigator.vibrate?.(10); nextMathQ(); }
+                else { btn.classList.add('bg-red-500'); setTimeout(()=>btn.classList.remove('bg-red-500'), 200); loseMathLife(); }
+                updateMathUI();
+            };
+            cont.appendChild(btn);
+        });
+    }
+
+    function loseMathLife() {
+        m_lives--; m_time = 100; navigator.vibrate?.([50,50]);
+        updateMathUI();
+        if(m_lives <= 0) {
+            clearInterval(activeInterval);
+            currentReward = Math.floor(m_score / 2);
+            showResultModal("GAME OVER", currentReward);
+        } else { nextMathQ(); }
+    }
+
+    function updateMathUI() { document.getElementById('math-score').textContent = m_score; document.getElementById('math-lives').textContent = m_lives; }
+    function rand(min, max) { return Math.floor(Math.random() * (max-min+1))+min; }
+
+    /* ================= MODULE 3: MEMORY MASTER ================= */
+    let mem_cards = [], mem_flipped = [], mem_matched = 0, mem_time = 60, mem_score = 0;
+    const EMOJIS = ['🚀','💎','🔥','⚡','🍕','🎸','🕹️','🏆'];
+
+    function startMemoryGame() {
+        switchScreen('screen-memory');
+        mem_score = 0; mem_matched = 0; mem_time = 60;
+        document.getElementById('mem-score').textContent = '0';
+        
+        const deck = [...EMOJIS, ...EMOJIS].sort(() => Math.random() - 0.5);
+        const board = document.getElementById('memory-board');
+        board.innerHTML = '';
+        
+        deck.forEach((e, i) => {
+            const card = document.createElement('div');
+            card.className = 'mem-card';
+            card.innerHTML = `<div class="mem-card-inner"><div class="mem-card-front"><i class="fas fa-question text-white/30 text-xl"></i></div><div class="mem-card-back">${e}</div></div>`;
+            card.onclick = () => flipMemCard(card, e);
+            board.appendChild(card);
+        });
+        
+        activeInterval = setInterval(() => {
+            mem_time--; document.getElementById('mem-timer').textContent = mem_time;
+            if(mem_time <= 0) { clearInterval(activeInterval); currentReward = mem_score; showResultModal("TIME'S UP", currentReward); }
+        }, 1000);
+    }
+
+    function flipMemCard(card, val) {
+        if(mem_flipped.length >= 2 || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+        card.classList.add('flipped');
+        mem_flipped.push({card, val});
+        navigator.vibrate?.(10);
+        
+        if(mem_flipped.length === 2) {
+            if(mem_flipped[0].val === mem_flipped[1].val) {
+                mem_score += 50; document.getElementById('mem-score').textContent = mem_score;
+                setTimeout(() => {
+                    mem_flipped[0].card.classList.add('matched');
+                    mem_flipped[1].card.classList.add('matched');
+                    mem_flipped = [];
+                    mem_matched++;
+                    navigator.vibrate?.([30,30]);
+                    if(mem_matched === 8) { clearInterval(activeInterval); currentReward = mem_score + mem_time*5; showResultModal("YOU WIN!", currentReward); }
+                }, 500);
+            } else {
+                setTimeout(() => {
+                    mem_flipped[0].card.classList.remove('flipped');
+                    mem_flipped[1].card.classList.remove('flipped');
+                    mem_flipped = [];
+                }, 800);
+            }
+        }
+    }
+
+    /* ================= UNIFIED REWARD & MONETIZATION ================= */
+    function showResultModal(title, reward) {
+        document.getElementById('result-title').textContent = title;
+        document.getElementById('result-reward').textContent = reward;
+        showModal('result-modal');
+    }
+
+    function closeResultAndHome() {
+        addCoins(currentReward);
+        hideModal('result-modal');
+        goHome();
+    }
+
+    function showAdForBonus() {
+        // Double reward simulation via Ad
+        pendingRewardCallback = () => {
+            currentReward *= 2;
+            closeResultAndHome();
+        };
+        showAdModal();
+    }
+
+    let adTmr;
+    function showAdModal() {
+        document.getElementById('ad-modal').classList.remove('hidden');
+        document.getElementById('ad-close').classList.add('hidden');
+        const tmrEl = document.getElementById('ad-timer');
+        tmrEl.classList.remove('hidden');
+        let t = 5; tmrEl.textContent = t+'s';
+        
+        adTmr = setInterval(() => {
+            t--; tmrEl.textContent = t+'s';
+            if(t<=0) {
+                clearInterval(adTmr);
+                tmrEl.classList.add('hidden');
+                document.getElementById('ad-close').classList.remove('hidden');
+            }
+        }, 1000);
+    }
+
+    function closeAd() {
+        hideModal('ad-modal');
+        if(pendingRewardCallback) {
+            pendingRewardCallback();
+            pendingRewardCallback = null;
+        }
+    }
+
+    function buyItem(type) {
+        // Simulate IAP
+        showAdModal(); // Fake loading
+        pendingRewardCallback = () => {
+            if(type==='small') addCoins(1000);
+            if(type==='large') addCoins(5000);
+            hideModal('shop-modal');
+            navigator.vibrate?.([50,100,50]);
+        };
+    }
+
+    // Run app
+    window.onload = init;
+
+</script>
+</body>
+</html>
